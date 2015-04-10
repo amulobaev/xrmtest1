@@ -1,0 +1,176 @@
+﻿<Window x:Class="XrmTest1.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        xmlns:converters="clr-namespace:XrmTest1.Converters"
+        Title="Тестовое задание" Height="700" Width="1000"
+        DataContext="{Binding Main, Source={StaticResource Locator}}"
+        WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <converters:VisibilityConverter x:Key="VisibilityConverter" />
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+        <converters:VisibilityToNullableBooleanConverter x:Key="VisibilityToNullableBooleanConverter" />
+
+        <Style TargetType="ToggleButton" x:Key="TransparentToggleButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="Transparent">
+                            <ContentPresenter />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <BitmapImage x:Key="CollapseImage" UriSource="/XrmTest1;component/Images/group-collapse.gif"/>
+        <BitmapImage x:Key="ExpandImage" UriSource="/XrmTest1;component/Images/group-expand.gif"/>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+
+        <GroupBox Header="Копирование резюме в базу:">
+            <Grid Margin="3">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="150" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="Резюме на сайте:" Margin="3" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                <TextBox Grid.Column="1" Text="{Binding ResumesCountOnServer}" Margin="3" VerticalAlignment="Center" IsReadOnly="True" />
+                <Button Grid.Column="2" Command="{Binding UpdateCountCommand}">
+                    <Image Source="Images/refresh.png" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="3" />
+                </Button>
+
+                <TextBlock Grid.Row="1" Text="Количество для загрузки:" Margin="3" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" VerticalAlignment="Center"
+                         Text="{Binding Count, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                         ToolTip="{Binding RelativeSource={x:Static RelativeSource.Self}, Path=(Validation.Errors)[0].ErrorContent}" />
+
+                <TextBlock Grid.Row="2" Text="Смещение:" Margin="3" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                <TextBox Grid.Row="2" Grid.Column="1" Margin="3" VerticalAlignment="Center"
+                         Text="{Binding Offset, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                         ToolTip="{Binding RelativeSource={x:Static RelativeSource.Self}, Path=(Validation.Errors)[0].ErrorContent}" />
+
+                <ProgressBar Grid.Row="3" VerticalAlignment="Center" Height="8" Margin="3" Maximum="100" Value="{Binding Progress}"
+                             Visibility="{Binding IsLoadingFromSite, Converter={StaticResource VisibilityConverter}}" />
+                <Button Grid.Column="1" Grid.Row="3" Content="Загрузить" Margin="3" Command="{Binding LoadResumeFromSiteCommand}" VerticalAlignment="Center"
+                        HorizontalAlignment="Center" IsEnabled="{Binding IsLoadingFromSite, Converter={StaticResource InverseBooleanConverter}}" />
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Row="1" Header="Резюме в базе:">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                    <Button Content="Обновить" Margin="3" Command="{Binding LoadResumeFromBaseCommand}" />
+                </StackPanel>
+                
+                <StackPanel Grid.Row="1" Orientation="Horizontal">
+                    <CheckBox Content="Имя:" Margin="3" VerticalAlignment="Center" IsChecked="{Binding FilterByName}" />
+                    <TextBox Width="150" Margin="3" IsEnabled="{Binding FilterByName}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="2" Orientation="Horizontal">
+                    <CheckBox Content="Должность:" Margin="3" VerticalAlignment="Center" IsChecked="{Binding FilterByHeader}" />
+                    <TextBox Width="150" Margin="3" IsEnabled="{Binding FilterByHeader}" Text="{Binding Header, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="3" Orientation="Horizontal">
+                    <CheckBox Content="Возраст от:" Margin="3" VerticalAlignment="Center" IsChecked="{Binding FilterByAge}" />
+                    <TextBox Width="50" Margin="3" IsEnabled="{Binding FilterByAge}" Text="{Binding AgeFrom, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text=" до " VerticalAlignment="Center" />
+                    <TextBox Width="50" Margin="3" IsEnabled="{Binding FilterByAge}" Text="{Binding AgeTo, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <xctk:BusyIndicator Grid.Row="4" BusyContent="Загрузка..." IsBusy="{Binding IsLoadingFromBase}">
+                    <DataGrid ItemsSource="{Binding Resumes}" AutoGenerateColumns="False" Margin="3" RowDetailsVisibilityMode="Collapsed"
+                              IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn x:Name="Column1" CanUserResize="False" >
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ToggleButton IsChecked="{Binding DetailsVisibility, RelativeSource={RelativeSource AncestorType={x:Type DataGridRow}},
+                                            Converter={StaticResource VisibilityToNullableBooleanConverter}}" Style="{StaticResource TransparentToggleButton}">
+                                            <Image Stretch="None">
+                                                <Image.Style>
+                                                    <Style TargetType="{x:Type Image}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True">
+                                                                <Setter Property="Source" Value="{StaticResource CollapseImage}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="False">
+                                                                <Setter Property="Source" Value="{StaticResource ExpandImage}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Image.Style>
+                                            </Image>
+                                        </ToggleButton>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <!--<DataGridTextColumn Header="№" Binding="{Binding Id}" />-->
+                            <DataGridTextColumn Header="ФИО" Binding="{Binding Contact.Name}" />
+                            <DataGridTextColumn Header="Должность" Binding="{Binding Header}" Width="*" />
+                            <DataGridTextColumn Header="Зарплата" Binding="{Binding Salary}" />
+                        </DataGrid.Columns>
+
+                        <DataGrid.RowDetailsTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition />
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <TextBlock Text="ФИО:" Margin="3" HorizontalAlignment="Right" FontWeight="Bold" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Contact.Name}" HorizontalAlignment="Left" Margin="3" />
+
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Info}" HorizontalAlignment="Left" Margin="3" />
+
+                                    <TextBlock Grid.Row="2" Text="Возраст:" Margin="3" HorizontalAlignment="Right" FontWeight="Bold" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Age}" HorizontalAlignment="Left" Margin="3" />
+
+                                    <TextBlock Grid.Row="3" Text="Должность:" Margin="3" HorizontalAlignment="Right" FontWeight="Bold" />
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Header}" HorizontalAlignment="Left" Margin="3" />
+                                </Grid>
+                            </DataTemplate>
+                        </DataGrid.RowDetailsTemplate>
+
+                        <DataGrid.RowStyle>
+                            <Style TargetType="{x:Type DataGridRow}">
+                                <EventSetter Event="MouseDoubleClick" Handler="RowDoubleClick"></EventSetter>
+                            </Style>
+                        </DataGrid.RowStyle>
+
+                    </DataGrid>
+                </xctk:BusyIndicator>
+            </Grid>
+        </GroupBox>
+
+    </Grid>
+</Window>
